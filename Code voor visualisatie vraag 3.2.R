@@ -38,7 +38,7 @@ edges$TrustLevel <- newlist3
 # Making a dataframe with the agenttypes per agent ID
 #Vertices <- data.frame(Agents_3S_0$AgentID[1:(max(Agents_3S_0$AgentID)+1)])
 
-# Plottig the network with different colors per Agent type
+# Plottig the network
 network <- graph_from_data_frame(d=edges, directed=F)
 lay <- layout.fruchterman.reingold(network)
 image1 <- plot(network, layout=lay)
@@ -84,6 +84,7 @@ Centrality_agents <- closeness(network,vids=V(network))
 sort(Centrality_agents,decreasing = TRUE)[1:5]
 # Plot the number of links with agents that has the strongest bond
 Toplist_nr_of_links = list()
+L=0
 for (i in 1:max(edges$as.double.newlist2.)) {for (j in 1:length(edges$as.double.newlist1.)) {if (edges$as.double.newlist1.[j] == i || edges$as.double.newlist2.[j] == i) L = L+1}; Toplist_nr_of_links[i] = L; L = 0}
 Toplist_nr_of_links <- as.numeric(Toplist_nr_of_links)
 Topagents_nr_of_links <- sort.list(Toplist_nr_of_links,decreasing=TRUE)[1:5]
@@ -113,16 +114,17 @@ p1 <- Trustgraph(0.8, Links_3S_0, lay)
 p2 <- Trustgraph(0.85,Links_3S_0,lay)
 p3 <- Trustgraph(0.9,Links_3S_0,lay)
 p4 <- Trustgraph(0.95,Links_3S_0,lay)
+graphplot = data.frame(p1,p2,p3,p4)
 
-multiplot(p1,p2,p3,p4,cols=2)
+ggplot2.multiplot(p1,p2,p3,p4,cols=2)
 
 #Trustgraphfunction broken down into pieces for 3 streams model
-Minimum_Trust <- 0.95
+Minimum_Trust <- 0
 newlist1 <- list()
 newlist2 <- list()
 newlist3 <- list()
 j <- 1
-for (i in 1:435) {if (Links_3S_0$Agent3[i] > Minimum_Trust) {newlist1[[j]] <- as.integer(Links_3S_0$agent1nr[i]); newlist2[[j]] <- as.integer(Links_3S_0$agent2nr[i]); newlist3[[j]] <- unlist(Links_3S_0$Agent3[i]); j = j+1}}
+for (i in 1:435) {if (Links_3S_0$Agent3[i] > Minimum_Trust) {newlist1[[j]] <- as.integer(Links_3S_0$agent1nr[i]); newlist2[[j]] <- as.integer(Links_3S_0$agent2nr[i]); newlist3[[j]] <- as.numeric(Links_3S_0$Agent3[i]); j = j+1}}
 
 # Making a dataframe out of these two lists
 edges = data.frame(as.double(newlist1),as.double(newlist2))
@@ -140,3 +142,13 @@ plot(network, layout=lay_out)
 # Make a table of the ticks at which the agents in the network of the "top 5" dropped in or out of their network
 
 # Maybe make a dumbbell graph of the prefered policies for the important agents with a dot for everytime the policy changes (in excel)
+
+# trying to convert the igraph into a ggnet graph so we can work with it better
+networkmatrix = matrix(ncol=30,nrow=30)
+k=1
+while (k<length(edges$as.double.newlist1.)){for (i in 0:29){for (j in 0:29){if(edges$as.double.newlist1.[k]==i & edges$as.double.newlist2.[k]==j){networkmatrix[i+1,j+1]=1;networkmatrix[j+1,i+1]=1;k=k+1}}}}
+networkmatrix[is.na(networkmatrix)]<-0
+list1 <- Agents_3S_0[1:30,2]
+list2 <- Agents_3S_0[1:30,4]
+node_features = data.frame(as.double(list1),as.double(list2))
+ggnet2(networkmatrix,color=node_features$as.double.list2.)
