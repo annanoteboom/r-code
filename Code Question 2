@@ -1,0 +1,193 @@
+## Run always (untill next ##)
+
+`1_agents_ACF_0_Rep0` <- read.csv("~/TB Honours/Project/Data question 2/1_agents_ACF_0_Rep0.csv")
+`1_agents_ACF_0_Rep1` <- read.csv("~/TB Honours/Project/Data question 2/1_agents_ACF_0_Rep1.csv")
+`1_agents_ACF_0_Rep2` <- read.csv("~/TB Honours/Project/Data question 2/1_agents_ACF_0_Rep2.csv")
+`1_agents_ACF_0_Rep3` <- read.csv("~/TB Honours/Project/Data question 2/1_agents_ACF_0_Rep3.csv")
+`1_agents_ACF_0_Rep4` <- read.csv("~/TB Honours/Project/Data question 2/1_agents_ACF_0_Rep4.csv")
+agents_BP0 <- read.csv("~/TB Honours/Project/Data question 2/1_agents_B+_0.csv")
+agents_B_0 <- read.csv("~/TB Honours/Project/Data question 2/1_agents_B_0.csv")
+Experiments_LHS <- read.csv("~/TB Honours/Project/Data question 2/Experiments_LHS.csv")
+
+# Importing the packages we need
+library(ggplot2)
+
+# Setting up multiplot (not our code, we got it from the internet)
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  library(grid)
+  
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+  
+  numPlots = length(plots)
+  
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                     ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+  
+  if (numPlots==1) {
+    print(plots[[1]])
+    
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+    
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+
+##
+
+# A function that plots all the aims (10) of a specific agent over time
+matrixbuild <- function(Dataset,Agentnumber,titledataset){
+  datalist <- as.character(Dataset[,5])
+  datalist <- gsub("\\[|\\]| ","",datalist)
+  datalist <- unlist(strsplit(datalist,","))
+  datalist <- as.numeric(datalist)
+  aimlst <- list()
+  j = 1
+  for (k in 1:10){for (i in 0:499) {aimlst[[j]] <- datalist[(51*30*i)+(51*(Agentnumber-1))+(1+((k-1)*3))]; j <- j + 1}}
+  Aimmatrix1 <- matrix(unlist(aimlst), nrow = 500,byrow =FALSE)
+  return(Aimmatrix1)
+}
+
+aimplotfun <- function(Dataset,Agentnumber,titledataset) {
+  x <- matrixbuild(Dataset,Agentnumber,titledataset)
+  # Code if you want to use matplot
+  #matplot(t(Aimmatrix1),type = 'l', xlab = "time", ylab = "Aim",main=paste("Aims of Agent",Agentnumber, "in", titledataset))
+  # Code if you want to use ggplot
+  qplot(c(row(x)), c(x), colour = c(col(x)), group = c(col(x)), geom = "line",xlab="tick",ylab="Aim",main=paste("Aims of Agent",Agentnumber, "in", titledataset))
+  
+}
+
+# example
+p1 <- aimplotfun(agents_B_0,3,"Backbone")
+p2 <- aimplotfun(agents_B_0,2,"Backbone")
+p3 <- aimplotfun(agents_B_0,4,"Backbone")
+p4 <- aimplotfun(agents_B_0,5,"Backbone")
+multiplot(p1,p2,p3,p4,cols =2)
+
+# Shadow the aims over the different runs, the average is the line
+test0 = matrixbuild(`1_agents_ACF_0_Rep0`, 5, 'ACF')
+test1 = matrixbuild(`1_agents_ACF_0_Rep1`, 5, 'ACF')
+test2 = matrixbuild(`1_agents_ACF_0_Rep2`, 5, 'ACF')
+test3 = matrixbuild(`1_agents_ACF_0_Rep3`, 5, 'ACF')
+test4 = matrixbuild(`1_agents_ACF_0_Rep4`, 5, 'ACF')
+test = data.frame(test0, test1, test2, test3, test4)
+mean1 = data.frame(test0[,1], test1[,1], test2[,1], test3[,1], test4[,1])
+mean2 = data.frame(test0[,2], test1[,2], test2[,2], test3[,2], test4[,2])
+mean3 = data.frame(test0[,3], test1[,3], test2[,3], test3[,3], test4[,3])
+mean4 = data.frame(test0[,4], test1[,4], test2[,4], test3[,4], test4[,4])
+mean5 = data.frame(test0[,5], test1[,5], test2[,5], test3[,5], test4[,5])
+mean6 = data.frame(test0[,6], test1[,6], test2[,6], test3[,6], test4[,6])
+mean7 = data.frame(test0[,7], test1[,7], test2[,7], test3[,7], test4[,7])
+mean8 = data.frame(test0[,8], test1[,8], test2[,8], test3[,8], test4[,8])
+mean9 = data.frame(test0[,9], test1[,9], test2[,9], test3[,9], test4[,9])
+mean10 = data.frame(test0[,10], test1[,10], test2[,10], test3[,10], test4[,10])
+test <- transform(test, Min = pmin(test0,test1,test2,test3,test4), Max = pmax(test0,test1,test2,test3,test4), indx = seq_len(dim(test)[1]))
+test$mean1 <- rowMeans(mean1)
+test$mean2 <- rowMeans(mean2)
+test$mean3 <- rowMeans(mean3)
+test$mean4 <- rowMeans(mean4)
+test$mean5 <- rowMeans(mean5)
+test$mean6 <- rowMeans(mean6)
+test$mean7 <- rowMeans(mean7)
+test$mean8 <- rowMeans(mean8)
+test$mean9 <- rowMeans(mean9)
+test$mean10 <- rowMeans(mean10)
+
+ggplot(test) +
+  geom_line(aes(indx, mean1), group = 1) +
+  geom_ribbon(aes(x = indx, ymax = Max.1, ymin = Min.1), alpha = 0.6, fill = "skyblue") +
+  geom_line(aes(indx, mean2), group = 1) +
+  geom_ribbon(aes(x = indx, ymax = Max.2, ymin = Min.2), alpha = 0.6, fill = "skyblue1") +
+  geom_line(aes(indx, mean3), group = 1) +
+  geom_ribbon(aes(x = indx, ymax = Max.3, ymin = Min.3), alpha = 0.6, fill = "skyblue2") +
+  geom_line(aes(indx, mean4), group = 1) +
+  geom_ribbon(aes(x = indx, ymax = Max.4, ymin = Min.4), alpha = 0.6, fill = "skyblue3") +
+  geom_line(aes(indx, mean5), group = 1) +
+  geom_ribbon(aes(x = indx, ymax = Max.5, ymin = Min.5), alpha = 0.6, fill = "skyblue4") +
+  geom_line(aes(indx, mean6), group = 1) +
+  geom_ribbon(aes(x = indx, ymax = Max.6, ymin = Min.6), alpha = 0.6, fill = "slateblue") +
+  geom_line(aes(indx, mean7), group = 1) +
+  geom_ribbon(aes(x = indx, ymax = Max.7, ymin = Min.7), alpha = 0.6, fill = "dodgerblue1") +
+  geom_line(aes(indx, mean8), group = 1) +
+  geom_ribbon(aes(x = indx, ymax = Max.8, ymin = Min.8), alpha = 0.6, fill = "dodgerblue4") +
+  geom_line(aes(indx, mean9), group = 1) +
+  geom_ribbon(aes(x = indx, ymax = Max.9, ymin = Min.9), alpha = 0.6, fill = "blue") +
+  geom_line(aes(indx, mean10), group = 1) +
+  geom_ribbon(aes(x = indx, ymax = Max.10, ymin = Min.10), alpha = 0.6, fill = "navyblue")
+
+### The aimplot function, broken down
+## Turn into a character string
+belieftreeB0 <- as.character(agents_B_0$Belieftree)
+##Omit the spaces and square brackets
+belieftreeB0 <- gsub("\\[|\\]| ","",belieftreeB0)
+#Take the first row
+#belieftree3s1 <- belieftree3s[1]
+## Split on the "," character so it will become a row of values
+belieftreeB0 <- unlist(strsplit(belieftreeB0,","))
+## Turn the values into numeric type instead of character
+belieftreeB0 <- as.numeric(belieftreeB0)
+
+## Making a list of all the aims
+aimlst <- list()
+## Making a matrix of all the aims of the agents over time
+j = 1
+for (k in 1:10){for (i in 0:499) {aimlst[[j]] <- belieftreeB0[(51*30*i)+(51*5)+(1+((k-1)*3))]; j <- j + 1}}
+Aimmatrix1 <- matrix(unlist(aimlst), nrow = 10,byrow = TRUE)
+#Plotting the matrix (Aim over time for 1 specific policy, in this case policy 1)
+matplot(t(Aimmatrix1),type = 'l', xlab = "time", ylab = "Aim")
+
+
+### redundant code
+##Function that plots a matrix of the aims of all agents on 1 item in 1 model, doesnt work but turns out its not what we wanted to show anyway
+matrixbuild <- function(Dataset, colname, policynumber, modelname) {j = 1
+datalist <- Dataset[,colname]
+datalist <- as.character(datalist)
+datalist <- gsub("\\[|\\]| ","",datalist)
+datalist <- unlist(strsplit(datalist,","))
+datalist <- as.numeric(datalist)
+aimlst <- list()
+for (i in 1:nrow(Dataset)) {if (i>1) {aimlst[[j]]<-datalist[(i-1)*30+(((policynumber-1)*3)+1)]} else {aimlst[[j]]<- datalist[(((policynumber-1)*3)+1)]}; j <- j + 1}
+Aimmatrix1 <- matrix(unlist(aimlst), nrow = 30)
+matplot(t(Aimmatrix1),type='l',xlab = "time", ylab = "Aim", main = paste("Policy", policynumber, modelname))
+}
+
+# The function, broken down
+belieftree3s <- as.character(agents3S0$Belieftree_policy)
+##Omit the spaces and square brackets
+belieftree3s <- gsub("\\[|\\]| ","",belieftree3s)
+#Take the first row
+#belieftree3s1 <- belieftree3s[1]
+## Split on the "," character so it will become a row of values
+belieftree3s <- unlist(strsplit(belieftree3s,","))
+## Turn the values into numeric type instead of character
+belieftree3s <- as.numeric(belieftree3s)
+
+## Making a list of all the aims
+aimlst <- list()
+## Making a matrix of all the aims of the agents over time
+j = 1
+for (i in 1:nrow(agents3S0)) {if (i>1) {aimlst[[j]]<-belieftree3s[(i-1)*30+1]} else {aimlst[[j]]<- belieftree3s[1]}; j <- j + 1}
+Aimmatrix1 <- matrix(unlist(aimlst), nrow = 30)
+#Plotting the matrix (Aim over time for 1 specific policy, in this case policy 1)
+matplot(t(Aimmatrix1),type = 'l', xlab = "time", ylab = "Aim")
+title("Policy 1, 3 Streams")
+
+# different idea to plot the data instead of matplot
+#Aimdataframe <- as.data.frame(Aimmatrix1)
+#ggplot(Aimdataframe)
