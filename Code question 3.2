@@ -1,0 +1,331 @@
+## Run always (untill next ##)
+# Importing the data sets we need
+`Agents_3S_0` <- read.csv("~/TB Honours/Project/Data question 3/1_agents_3S_0.csv")
+`Agents_ACF_0` <- read.csv("~/TB Honours/Project/Data question 3/1_agents_ACF_0.csv")
+`Agents_B+_0` <- read.csv("~/TB Honours/Project/Data question 3/1_agents_B+_0.csv")
+`Links_3S_0` <- read.csv("~/TB Honours/Project/Data question 3/1_links_3S_0.csv")
+`Links_ACF_0` <- read.csv("~/TB Honours/Project/Data question 3/1_links_ACF_0.csv")
+`Links_B+_0` <- read.csv("~/TB Honours/Project/Data question 3/1_links_B+_0.csv")
+
+# Importing the packages we need
+library(igraph)
+library(ggplot2)
+library(ggnet)
+
+# Setting up multiplot (not our code, we got it from the internet)
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  library(grid)
+  
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+  
+  numPlots = length(plots)
+  
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                     ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+  
+  if (numPlots==1) {
+    print(plots[[1]])
+    
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+    
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+
+# Convert the Agent column into character
+Links_3S_0$Agent1 <- as.character(Links_3S_0$Agent1)
+Links_3S_0$Agent2 <- as.character(Links_3S_0$Agent2)
+Links_ACF_0$Agent1 <- as.character(Links_ACF_0$Agent1)
+Links_ACF_0$Agent2 <- as.character(Links_ACF_0$Agent2)
+`Links_B+_0`$Agent1 <- as.character(`Links_B+_0`$Agent1)
+`Links_B+_0`$Agent2 <- as.character(`Links_B+_0`$Agent2)
+
+# Adding two columns to the dataset with the agentnumbers of the Agents
+agent1nr <- list()
+j <- 1
+for (i in 1:nrow(Links_3S_0)) {agent1nr[[j]] <- substr(Links_3S_0$Agent1[i], regexpr(":", Links_3S_0$Agent1[i])+2, nchar(Links_3S_0$Agent1[i])); agent1nr[[j]] <- as.integer(agent1nr[[j]]); j = j + 1}
+Links_3S_0$agent1nr = agent1nr
+
+agent2nr <- list()
+j <- 1
+for (i in 1:nrow(Links_3S_0)) {agent2nr[[j]] <- substr(Links_3S_0$Agent2[i], regexpr(":", Links_3S_0$Agent2[i])+2, nchar(Links_3S_0$Agent2[i])); agent2nr[[j]] <- as.integer(agent2nr[[j]]); j = j + 1}
+Links_3S_0$agent2nr = agent2nr
+
+agent1nr <- list()
+j <- 1
+for (i in 1:nrow(Links_ACF_0)) {agent1nr[[j]] <- substr(Links_ACF_0$Agent1[i], regexpr(":", Links_ACF_0$Agent1[i])+2, nchar(Links_ACF_0$Agent1[i])); agent1nr[[j]] <- as.integer(agent1nr[[j]]); j = j + 1}
+Links_ACF_0$agent1nr = agent1nr
+
+agent2nr <- list()
+j <- 1
+for (i in 1:nrow(Links_ACF_0)) {agent2nr[[j]] <- substr(Links_ACF_0$Agent2[i], regexpr(":", Links_ACF_0$Agent2[i])+2, nchar(Links_ACF_0$Agent2[i])); agent2nr[[j]] <- as.integer(agent2nr[[j]]); j = j + 1}
+Links_ACF_0$agent2nr = agent2nr
+
+agent1nr <- list()
+j <- 1
+for (i in 1:nrow(Links_3S_0)) {agent1nr[[j]] <- substr(`Links_B+_0`$Agent1[i], regexpr(":", `Links_B+_0`$Agent1[i])+2, nchar(`Links_B+_0`$Agent1[i])); agent1nr[[j]] <- as.integer(agent1nr[[j]]); j = j + 1}
+`Links_B+_0`$agent1nr = agent1nr
+
+agent2nr <- list()
+j <- 1
+for (i in 1:nrow(`Links_B+_0`)) {agent2nr[[j]] <- substr(`Links_B+_0`$Agent2[i], regexpr(":", `Links_B+_0`$Agent2[i])+2, nchar(`Links_B+_0`$Agent2[i])); agent2nr[[j]] <- as.integer(agent2nr[[j]]); j = j + 1}
+`Links_B+_0`$agent2nr = agent2nr
+
+##
+
+# General function for any link dataset that gives the network for a given tick at a given threshold
+Trustgraphggnet <- function(MinimumTrust,Links_Data_Frame,tick,Agents_Data_Frame,lay_out) {
+  agent1nr <- list()
+  j <- 1
+  for (i in 1:nrow(Links_Data_Frame)) {agent1nr[[j]] <- substr(Links_Data_Frame$Agent1[i], regexpr(":", Links_Data_Frame$Agent1[i])+2, nchar(Links_Data_Frame$Agent1[i])); agent1nr[[j]] <- as.integer(agent1nr[[j]]); j = j + 1}
+  Links_Data_Frame$agent1nr = agent1nr
+  
+  agent2nr <- list()
+  j <- 1
+  for (i in 1:nrow(Links_Data_Frame)) {agent2nr[[j]] <- substr(Links_Data_Frame$Agent2[i], regexpr(":", Links_Data_Frame$Agent2[i])+2, nchar(Links_Data_Frame$Agent2[i])); agent2nr[[j]] <- as.integer(agent2nr[[j]]); j = j + 1}
+  Links_Data_Frame$agent2nr = agent2nr
+  
+  newlist1 <- list()
+  newlist2 <- list()
+  newlist3 <- list()
+  
+  num_per_tick <- length(Links_Data_Frame$Agent3)/500
+  
+  j = 1
+  for (i in (1+num_per_tick*(tick-1)):(1+num_per_tick*(tick-1)+num_per_tick)) {if (Links_Data_Frame$Agent3[i] > MinimumTrust) {newlist1[[j]] <- as.integer(Links_Data_Frame$agent1nr[i]); newlist2[[j]] <- as.integer(Links_Data_Frame$agent2nr[i]); newlist3[[j]] <- unlist(Links_Data_Frame$Agent3[i]); j = j+1}}
+  edges = data.frame(as.double(newlist1),as.double(newlist2))
+  edges$TrustLevel <- as.double(newlist3)
+  
+  networkmatrix = matrix(ncol=30,nrow=30)
+  for (k in 1:length(edges$as.double.newlist1.)){for (i in 0:29){for (j in 0:29){if(edges$as.double.newlist1.[k]==i & edges$as.double.newlist2.[k]==j){networkmatrix[i+1,j+1]=1}}}}
+  networkmatrix[is.na(networkmatrix)]<-0
+  
+  list1 <- Agents_Data_Frame[1:30,2]
+  list2 <- Agents_Data_Frame[1:30,4]
+  node_features = data.frame(as.double(list1),as.double(list2))
+  for (i in 1:length(node_features$as.double.list2.)){if(node_features$as.double.list2.[i]==1){node_features$as.double.list2.[i]="External Party"}}
+  for (i in 1:length(node_features$as.double.list2.)){if(node_features$as.double.list2.[i]==2){node_features$as.double.list2.[i]="Policy Maker"}}
+  for (i in 1:length(node_features$as.double.list2.)){if(node_features$as.double.list2.[i]==3){node_features$as.double.list2.[i]="Policy Entre"}}
+  node_features$label = node_features$as.double.list1.
+  
+  populist <- list()
+  for (i in 1:length(networkmatrix[1,])){populist[i]=sum(networkmatrix[i,])}
+  node_features$popularity <- as.double(populist)
+  
+  ggnet2(networkmatrix,color=node_features$as.double.list2.,palette = c("External Party"="yellow", "Policy Maker"="blue", "Policy Entre"="green"),label = node_features$label,mode=lay_out, size=node_features$popularity,edge.size = edges$TrustLevel)
+  }
+
+# Example of a graph with a threshold of 0.9, from the 3s model at tick 3
+p1 <- Trustgraphggnet(0,Links_3S_0,1,Agents_3S_0, "circle")
+p2 <- Trustgraphggnet(0,Links_3S_0,100,Agents_3S_0,"circle")
+p3 <- Trustgraphggnet(0,Links_3S_0,200,Agents_3S_0,"circle")
+p4 <- Trustgraphggnet(0,Links_3S_0,300,Agents_3S_0,"circle")
+multiplot(p1,p2,p3,p4,cols=2)
+
+# The function broken down, still have to explain per row of code
+networkmatrix = matrix(ncol=30,nrow=30)
+numlist = list() 
+for (k in 1:length(edges$as.double.newlist1.)){for (i in 0:29){for (j in 0:29){if(edges$as.double.newlist1.[k]==i & edges$as.double.newlist2.[k]==j){networkmatrix[i+1,j+1]=1}}}}
+networkmatrix[is.na(networkmatrix)]<-0
+list1 <- Agents_3S_0[1:30,2]
+list2 <- Agents_3S_0[1:30,4]
+node_features = data.frame(as.double(list1),as.double(list2))
+for (i in 1:length(node_features$as.double.list2.)){if(node_features$as.double.list2.[i]==1){node_features$as.double.list2.[i]="External Party"}}
+for (i in 1:length(node_features$as.double.list2.)){if(node_features$as.double.list2.[i]==2){node_features$as.double.list2.[i]="Policy Maker"}}
+for (i in 1:length(node_features$as.double.list2.)){if(node_features$as.double.list2.[i]==3){node_features$as.double.list2.[i]="Policy Entre"}}
+node_features$label = node_features$as.double.list1.
+populist <- list()
+for (i in 1:length(networkmatrix[1,])){populist[i]=sum(networkmatrix[i,])}
+node_features$popularity <- as.double(populist)
+ggnet2(networkmatrix,color=node_features$as.double.list2.,palette = c("External Party"="yellow", "Policy Maker"="blue", "Policy Entre"="green"),label = node_features$label,mode="circle", size=node_features$popularity,edge.size = edges$TrustLevel)
+
+
+# Centrality measure (igraph) or clustering coefficient
+# Identify the top 5 agents that are "most centralised" 
+Centrality_agents <- closeness(network,vids=V(network))
+sort(Centrality_agents,decreasing = TRUE)[1:5]
+
+# Plot the number of links with agents that has the strongest bond
+Toplist_nr_of_links = list()
+L=0
+for (i in 1:max(edges$as.double.newlist2.)) {for (j in 1:length(edges$as.double.newlist1.)) {if (edges$as.double.newlist1.[j] == i || edges$as.double.newlist2.[j] == i) L = L+1}; Toplist_nr_of_links[i] = L; L = 0}
+Toplist_nr_of_links <- as.numeric(Toplist_nr_of_links)
+Topagents_nr_of_links <- sort.list(Toplist_nr_of_links,decreasing=TRUE)[1:5]
+Topagents_nr_of_links
+
+# Print the top 5 of agents with the strongest aggregate bonds
+Toplist = list()
+L = 0
+for (i in 1:max(edges$as.double.newlist2.)) {for (j in 1:length(edges$as.double.newlist1.)) {if (edges$as.double.newlist1.[j] == i || edges$as.double.newlist2.[j] == i) L = L+as.numeric(edges$TrustLevel[j])}; Toplist[i] = L; L = 0}
+Toplist <- as.numeric(Toplist)
+Topagents <- sort.list(Toplist,decreasing=TRUE)[1:5]
+Topagents
+
+# Plot the centrality over time, first by seeing which actors are in the top 5 over time
+
+Centralityplot <- function(Links_Data_Frame){
+  ticks = c(1:499)
+  Topagent1 = c()
+  Topagent2 = c()
+  Topagent3 = c()
+  Topagent4 = c()
+  Topagent5 = c()
+  num_per_tick <- length(Links_Data_Frame$Agent3)/500
+  for(k in 1:499){
+    newlist1 <- list()
+    newlist2 <- list()
+    newlist3 <- list()
+    j = 1
+    for (i in (1+num_per_tick*(k-1)):(1+num_per_tick*(k-1)+num_per_tick)) {if (Links_Data_Frame$Agent3[i] > 0) {newlist1[[j]] <- as.integer(Links_Data_Frame$agent1nr[i]); newlist2[[j]] <- as.integer(Links_Data_Frame$agent2nr[i]); newlist3[[j]] <- unlist(Links_Data_Frame$Agent3[i]); j = j+1}}
+    edges = data.frame(as.double(newlist1),as.double(newlist2))
+    edges$TrustLevel <- as.double(newlist3)
+    Toplist = list()
+    L = 0
+    for (i in 1:max(edges$as.double.newlist2.)) {for (j in 1:length(edges$as.double.newlist1.)) {if (edges$as.double.newlist1.[j] == i || edges$as.double.newlist2.[j] == i) L = L+as.numeric(edges$TrustLevel[j])}; Toplist[i] = L; L = 0}
+    Toplist <- as.numeric(Toplist)
+    Topagents <- sort.list(Toplist,decreasing=TRUE)[1:5]
+    Topagent1 = c(Topagent1,Topagents[1])
+    Topagent2 = c(Topagent2,Topagents[2])
+    Topagent3 = c(Topagent3,Topagents[3])
+    Topagent4 = c(Topagent4,Topagents[4])
+    Topagent5 = c(Topagent5,Topagents[5])
+  }
+  Topdataframe = data.frame(ticks,Topagent1,Topagent2,Topagent3,Topagent4,Topagent5)
+  ggplot(Topdataframe,aes(x=ticks,y=Topagent1))+geom_point()+geom_point(aes(y=Topagent2))+geom_point(aes(y=Topagent3))+geom_point(aes(y=Topagent4))+geom_point(aes(y=Topagent5))
+}
+#Example
+Centralityplot(Links_ACF_0)
+
+## Plot the aggregated trustlevel over time for all agents that have been in the top 5 over the run
+# First i made a function that lists the agents that have been in the top 5 over the run
+Topagentlistfun <- function(Links_Data_Frame){
+  ticks = c(1:499)
+  Topagentlist = c()
+  num_per_tick <- length(Links_Data_Frame$Agent3)/500
+  for(k in 1:499){
+    newlist1 <- list()
+    newlist2 <- list()
+    newlist3 <- list()
+    j = 1
+    for (i in (1+num_per_tick*(k-1)):(1+num_per_tick*(k-1)+num_per_tick)) {if (Links_Data_Frame$Agent3[i] > 0) {newlist1[[j]] <- as.integer(Links_Data_Frame$agent1nr[i]); newlist2[[j]] <- as.integer(Links_Data_Frame$agent2nr[i]); newlist3[[j]] <- unlist(Links_Data_Frame$Agent3[i]); j = j+1}}
+    edges = data.frame(as.double(newlist1),as.double(newlist2))
+    edges$TrustLevel <- as.double(newlist3)
+    Toplist = list()
+    L = 0
+    for (i in 1:max(edges$as.double.newlist2.)) {for (j in 1:length(edges$as.double.newlist1.)) {if (edges$as.double.newlist1.[j] == i || edges$as.double.newlist2.[j] == i) L = L+as.numeric(edges$TrustLevel[j])}; Toplist[i] = L; L = 0}
+    Toplist <- as.numeric(Toplist)
+    Topagents <- sort.list(Toplist,decreasing=TRUE)[1:5]
+    p=0
+    for(i in Topagents){if(i %in% Topagentlist){}else{Topagentlist = c(Topagentlist,i)}}
+  }
+  return(Topagentlist)
+}
+
+# This function plots a graph of the aggregated trustlevel of the agents that have been in the top 5 
+AggTrustLvlPlot <- function(Links_Data_Frame){
+  num <- Topagentlistfun(Links_Data_Frame)
+  Trustlevelmatrix <- matrix(nrow=499, ncol=length(num))
+  L=0
+  for (k in 1:499){
+    newlist1 <- list()
+    newlist2 <- list()
+    newlist3 <- list()
+    j = 1
+    for (i in (1+num_per_tick*(k-1)):(1+num_per_tick*(k-1)+num_per_tick)) {if (Links_Data_Frame$Agent3[i] > 0) {newlist1[[j]] <- as.integer(Links_Data_Frame$agent1nr[i]); newlist2[[j]] <- as.integer(Links_Data_Frame$agent2nr[i]); newlist3[[j]] <- unlist(Links_Data_Frame$Agent3[i]); j = j+1}}
+    edges = data.frame(as.double(newlist1),as.double(newlist2))
+    edges$TrustLevel <- as.double(newlist3)
+    for (i in 1:length(num)){for (j in 1:length(edges$as.double.newlist1)){if (edges$as.double.newlist1.[j]==num[i]||edges$as.double.newlist2.[j]==num[i])L=L+as.numeric(edges$TrustLevel[j])};Trustlevelmatrix[k,i]=L;L=0
+      }
+  }
+  matplot(Trustlevelmatrix,type='l',xlab="tick")
+}
+
+#Example
+AggTrustLvlPlot(Links_ACF_0)
+
+# Make a table of the ticks at which the agents in the network of the "top 5" dropped in or out of their network
+
+# Maybe make a dumbbell graph of the prefered policies for the important agents with a dot for everytime the policy changes (in excel)
+
+
+
+### Redundant code
+## Working with igraph instead of ggnet
+# Making a list of all the links between agents that are aware of each other (agent 3 > 0) in the first tick
+newlist1 <- list()
+newlist2 <- list()
+newlist3 <- list()
+j <- 1
+for (i in 1:435) {if (Links_3S_0$Agent3[i] > 0) {newlist1[[j]] <- as.integer(Links_3S_0$agent1nr[i]); newlist2[[j]] <- as.integer(Links_3S_0$agent2nr[i]); newlist3[[j]] <- unlist(Links_3S_0$Agent3[i]); j = j+1}}
+
+# Making a dataframe out of these two lists
+edges = data.frame(as.double(newlist1),as.double(newlist2))
+edges$TrustLevel <- newlist3
+
+# Plottig the network using igraph
+network <- graph_from_data_frame(d=edges, directed=F)
+lay <- layout.fruchterman.reingold(network)
+image1 <- plot(network, layout=lay)
+
+# Plotting the network for tick 2 so you can compare (not very informative yet)
+newlist1 <- list()
+newlist2 <- list()
+newlist3 <- list()
+j <- 1
+for (i in 435:870) {if (Links_3S_0$Agent3[i] > 0) {newlist1[[j]] <- as.integer(Links_3S_0$agent1nr[i]); newlist2[[j]] <- as.integer(Links_3S_0$agent2nr[i]); newlist3[[j]] <- unlist(Links_3S_0$Agent3[i]); j = j+1}}
+edges = data.frame(as.double(newlist1),as.double(newlist2))
+edges$TrustLevel <- as.double(newlist3)
+network2 <- graph_from_data_frame(d=edges, directed=F)
+lay <- layout.fruchterman.reingold(network2)
+image2 <- plot(network2, layout=lay)
+
+# a function that plots a network out of a threshold, a dataframe and a lay-out
+Trustgraph <- function(MinimumTrust,Links_Data_Frame,lay_out) {
+  newlist1 <- list()
+  newlist2 <- list()
+  newlist3 <- list()
+  j = 1
+  for (i in 1:(length(Links_Data_Frame$Agent3)/500)) {if (Links_Data_Frame$Agent3[i] > MinimumTrust) {newlist1[[j]] <- as.integer(Links_Data_Frame$agent1nr[i]); newlist2[[j]] <- as.integer(Links_Data_Frame$agent2nr[i]); newlist3[[j]] <- unlist(Links_Data_Frame$Agent3[i]); j = j+1}}
+  edges = data.frame(as.double(newlist1),as.double(newlist2))
+  edges$TrustLevel <- newlist3
+  network <- graph_from_data_frame(d=edges, directed=F)
+  plot(network, layout=lay)
+}
+
+p1 <- Trustgraph(0.8, Links_3S_0, lay)
+p2 <- Trustgraph(0.85,Links_3S_0,lay)
+p3 <- Trustgraph(0.9,Links_3S_0,lay)
+p4 <- Trustgraph(0.95,Links_3S_0,lay)
+multiplot(p1,p2,p3,p4,cols=2)
+
+#Trustgraphfunction broken down into pieces for 3 streams model
+Minimum_Trust <- 0.5
+newlist1 <- list()
+newlist2 <- list()
+newlist3 <- list()
+j <- 1
+for (i in 1:435) {if (Links_ACF_0$Agent3[i] > Minimum_Trust) {newlist1[[j]] <- as.integer(Links_ACF_0$agent1nr[i]); newlist2[[j]] <- as.integer(Links_ACF_0$agent2nr[i]); newlist3[[j]] <- as.numeric(Links_ACF_0$Agent3[i]); j = j+1}}
+
+# Making a dataframe out of these two lists
+edges = data.frame(as.double(newlist1),as.double(newlist2))
+edges$TrustLevel <- as.double(newlist3)
+# plotting the graph
+lay <- layout.fruchterman.reingold(network)
+plot(network, layout=lay_out)
