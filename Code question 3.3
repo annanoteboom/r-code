@@ -1,0 +1,250 @@
+# Run always
+Coalitions_ACF <- read.csv("~/TB Honours/Project/1_coalitions_pf_ACF_exp_0.csv")
+`Links_ACF_0` <- read.csv("~/TB Honours/Project/Data question 3/1_links_ACF_0.csv")
+`Agents_ACF_0` <- read.csv("~/TB Honours/Project/Data question 3/1_agents_ACF_0.csv")
+
+# Importing the packages we need
+library(igraph)
+library(ggplot2)
+library(ggnet)
+
+# Data prep
+Links_ACF_0$Agent1 <- as.character(Links_ACF_0$Agent1)
+Links_ACF_0$Agent2 <- as.character(Links_ACF_0$Agent2)
+agent1nr <- list()
+j <- 1
+for (i in 1:nrow(Links_ACF_0)) {agent1nr[[j]] <- substr(Links_ACF_0$Agent1[i], regexpr(":", Links_ACF_0$Agent1[i])+2, nchar(Links_ACF_0$Agent1[i])); agent1nr[[j]] <- as.integer(agent1nr[[j]]); j = j + 1}
+Links_ACF_0$agent1nr = agent1nr
+
+agent2nr <- list()
+j <- 1
+for (i in 1:nrow(Links_ACF_0)) {agent2nr[[j]] <- substr(Links_ACF_0$Agent2[i], regexpr(":", Links_ACF_0$Agent2[i])+2, nchar(Links_ACF_0$Agent2[i])); agent2nr[[j]] <- as.integer(agent2nr[[j]]); j = j + 1}
+Links_ACF_0$agent2nr = agent2nr
+
+# Plot the coalitions over time, who went in what coalition when
+Coalitiondevplot <- function(Coalitiondataframe,actor){
+  vblist <- list()
+  vblist2 <- list()
+  for(i in 1:length(Coalitiondataframe$Lead)){
+    if(Coalitiondataframe$Lead[i]==actor){xlst <- Coalitiondataframe$Members[i]
+    xlst <- as.character(xlst)
+    xlst <- gsub("\\[|\\]|","",xlst)
+    xlst <- unlist(strsplit(xlst,","))
+    xlst <- as.numeric(xlst)
+    for (el in xlst) {
+      vblist = c(vblist,el)
+      vblist2 = c(vblist2,Coalitiondataframe$Creation[i])}}}
+  bvlist <- data.frame(as.double(vblist),as.double(vblist2))
+  ggplot(bvlist,aes(x = as.double.vblist2.,y = as.double.vblist.))+geom_point()+xlab("Time")+ylab("Actors")
+}
+
+# Example
+Coalitiondevplot(Coalitions_ACF,7)
+Coalitiondevplot(Coalitions_ACF,22)
+
+# Plot the resources of the coalitions
+Resourceplot <- function(Coalitiondataframe,actor){
+  vblist <- list()
+  vblist2 <- list()
+  for(i in 1:length(Coalitiondataframe$Lead)){
+    if(Coalitiondataframe$Lead[i]==actor){
+      vblist = c(vblist,Coalitiondataframe$Resources[i])
+      vblist2 = c(vblist2,Coalitiondataframe$Creation[i])}}
+  bvlist <- data.frame(as.double(vblist),as.double(vblist2))
+  ggplot(bvlist,aes(x = as.double.vblist2.,y = as.double.vblist.))+geom_line()+xlab("Time")+ylab("Resources")
+}
+
+# Example
+Resourceplot(Coalitions_ACF,7)
+
+# Plot the trustlevels in coalitions over all agents at a specific tick
+Coalitionplotggnet <- function(Coalition_Dataframe, Links_Dataframe, Agents_Data_Frame,tick){
+  newlist1 <- list()
+  newlist2 <- list()
+  newlist3 <- list()
+  for (i in 1:length(Coalition_Dataframe$Step)){if (Coalition_Dataframe$Step[i]==(tick-1)){vblist <- i; break}}
+  for (i in 1:length(Coalition_Dataframe$Step)){if (Coalition_Dataframe$Step[i]==(tick-1)){vblist2 <- i}}
+  xlst <- list()
+  num_per_tick <- length(Links_Dataframe$Agent3)/500
+  p = 1
+  for (j in vblist:vblist2){xlst <- Coalition_Dataframe$Members[j]
+  xlst <- as.character(xlst)
+  xlst <- gsub("\\[|\\]|","",xlst)
+  xlst <- unlist(strsplit(xlst,","))
+  xlst <- as.numeric(xlst) 
+  for (i in (1+num_per_tick*(tick-1)):(1+num_per_tick*(tick-1)+num_per_tick)) {if (Links_Dataframe$Agent3[i] > 0 & Links_Dataframe$agent1nr[i] %in% xlst & Links_Dataframe$agent2nr[i] %in% xlst) {newlist1[[p]] <- as.integer(Links_Dataframe$agent1nr[i]); newlist2[[p]] <- as.integer(Links_Dataframe$agent2nr[i]); newlist3[[p]] <- unlist(Links_Dataframe$Agent3[i]); p = p+1}}}
+  edges = data.frame(as.double(newlist1),as.double(newlist2))
+  edges$TrustLevel <- newlist3
+  networkmatrix = matrix(ncol=30,nrow=30)
+  for (k in 1:length(edges$as.double.newlist1.)){for (i in 0:29){for (j in 0:29){if(edges$as.double.newlist1.[k]==i & edges$as.double.newlist2.[k]==j){networkmatrix[i+1,j+1]=1}}}}
+  networkmatrix[is.na(networkmatrix)]<-0
+  
+  list1 <- Agents_Data_Frame[1:30,2]
+  list2 <- Agents_Data_Frame[1:30,4]
+  node_features = data.frame(as.double(list1),as.double(list2))
+  for (i in 1:length(node_features$as.double.list2.)){if(node_features$as.double.list2.[i]==1){node_features$as.double.list2.[i]="External Party"}}
+  for (i in 1:length(node_features$as.double.list2.)){if(node_features$as.double.list2.[i]==2){node_features$as.double.list2.[i]="Policy Maker"}}
+  for (i in 1:length(node_features$as.double.list2.)){if(node_features$as.double.list2.[i]==3){node_features$as.double.list2.[i]="Policy Entre"}}
+  node_features$label = node_features$as.double.list1.
+  
+  populist <- list()
+  for (i in 1:length(networkmatrix[1,])){populist[i]=sum(networkmatrix[i,])+sum(networkmatrix[,i])}
+  node_features$popularity <- as.double(populist)
+  
+  ggnet2(networkmatrix,color=node_features$as.double.list2.,palette = c("External Party"="skyblue", "Policy Maker"="skyblue2", "Policy Entre"="skyblue4"),label = node_features$label, size=node_features$popularity)
+}
+
+#Examples
+Coalitionplotggnet(Coalitions_ACF,Links_ACF_0,Agents_ACF_0,1)
+Coalitionplotggnet(Coalitions_ACF,Links_ACF_0,Agents_ACF_0,2)
+
+# Code that plots the network between actors in 1 coalition at a specific tick
+Coalitionnetworkplotggnet <- function(Links_Dataframe, Coalitiondataframe,Agents_Data_Frame,tick,actor){
+  newlist1 <- list()
+  newlist2 <- list()
+  newlist3 <- list()
+  xlst <- list()
+  num_per_tick <- length(Links_Dataframe$Agent3)/500
+  k <- 0
+  for (i in 1:length(Coalitiondataframe$Lead)){
+    if (Coalitiondataframe$Lead[i]==actor & Coalitiondataframe$Creation[i]==tick) {k <- i}}
+  
+  if(k==0){return(c(actor,"was not a coalition leader at this tick"))}
+  
+  xlst <- Coalitiondataframe$Members[k]
+  xlst <- as.character(xlst)
+  xlst <- gsub("\\[|\\]|","",xlst)
+  xlst <- unlist(strsplit(xlst,","))
+  xlst <- as.numeric(xlst)
+  
+  if(length(xlst)==1){return(c(actor,"was a lone wolf at this tick"))}
+  
+  p = 1
+  for (i in (1+num_per_tick*(tick-1)):(1+num_per_tick*(tick-1)+num_per_tick)) {
+    if (Links_Dataframe$Agent3[i] > 0 & Links_Dataframe$agent1nr[i] %in% xlst & Links_Dataframe$agent2nr[i] %in% xlst) {
+      newlist1[[p]] <- as.integer(Links_Dataframe$agent1nr[i]); newlist2[[p]] <- as.integer(Links_Dataframe$agent2nr[i]); newlist3[[p]] <- unlist(Links_Dataframe$Agent3[i]); p = p+1}}
+  edges = data.frame(as.double(newlist1),as.double(newlist2))
+  edges$TrustLevel <- newlist3
+  
+  if(length(edges$as.double.newlist1.)==0){return(c("Sorry, no one in coalition",xlst,"knew one another"))}
+  
+  newlist4 <- list()
+  for(el in edges$as.double.newlist1.){
+    if (el %in% newlist4){}else{newlist4 <- c(newlist4,el)}}
+  for (i in xlst){if (i %in% newlist4){}else {newlist4 <- c(newlist4,i)}}
+  networkmatrix <- matrix(ncol = length(newlist4),nrow=length(newlist4))
+  rownames(networkmatrix) <- newlist4
+  colnames(networkmatrix) <- newlist4
+  for (s in 1:length(edges$as.double.newlist1.)){
+    for (i in newlist4){for (j in newlist4){
+      if(edges$as.double.newlist1.[s]==i & edges$as.double.newlist2.[s]==j){
+        networkmatrix[as.character(i),as.character(j)] = 1}}}}
+  networkmatrix[is.na(networkmatrix)]<-0
+  
+  newlist5 <- list()
+  for(i in 1:30){
+    if (Agents_Data_Frame[i,2] %in% newlist4) {
+      newlist5 <- c(newlist5,Agents_Data_Frame[i,4])}}
+  node_features = data.frame(as.double(newlist4))
+  newlist5 <- as.double(newlist5)
+  
+  for (i in 1:length(newlist5)){if(newlist5[i]==1){newlist5[i]="External Party"}}
+  for (i in 1:length(newlist5)){if(newlist5[i]==2){newlist5[i]="Policy Maker"}}
+  for (i in 1:length(newlist5)){if(newlist5[i]==3){newlist5[i]="Policy Entre"}}
+  for (i in 1:length(newlist5)){if(newlist4[i]==Coalitiondataframe$Lead[k]){newlist5[i]="Coalition Leader"}}
+  node_features$colour = newlist5
+  populist <- list()
+  for (i in 1:length(networkmatrix[1,])){
+    populist[i]=sum(networkmatrix[i,])+sum(networkmatrix[,i])}
+  node_features$popularity <- as.double(populist)
+  p1 <- ggnet2(networkmatrix,color=node_features$colour,palette = c("External Party"="skyblue", "Policy Maker"= "skyblue2", "Policy Entre" = "skyblue4","Coalition Leader"="red"), node.label = node_features$as.double.newlist4.,size=node_features$popularity)
+  print(p1)
+  return(1)
+  }
+
+# Examples
+Coalitionnetworkplotggnet(Links_ACF_0,Coalitions_ACF,Agents_ACF_0,333,25)
+Coalitionnetworkplotggnet(Links_ACF_0,Coalitions_ACF,Agents_ACF_0,474,29)
+
+# Sometimes no one knows any other member, the member is not the coalition leader or the coalition consist of only one person, in that case, the function returns that message
+Coalitionnetworkplotggnet(Links_ACF_0,Coalitions_ACF,Agents_ACF_0,39,27)
+Coalitionnetworkplotggnet(Links_ACF_0,Coalitions_ACF,Agents_ACF_0,463,14)
+Coalitionnetworkplotggnet(Links_ACF_0,Coalitions_ACF,Agents_ACF_0,339,8)
+
+# plot all the sensible plots in a tick
+options(warn=-1)
+for(i in 1:30){
+  if(Coalitionnetworkplotggnet(Links_ACF_0,Coalitions_ACF,Agents_ACF_0,1,i)==1){
+  }
+}
+options(warn=0)
+
+## Same graph using igraph, this one only shows the people in the coalitions that know each other
+
+Coalitionplot <- function(Links_Dataframe,Coalition_Dataframe,tick,Coalitionleader){
+  newlist1 <- list()
+  newlist2 <- list()
+  newlist3 <- list()
+  for (i in 1:length(Coalition_Dataframe$Step)){if (Coalition_Dataframe$Step[i]==(tick-1)){vblist <- i; break}}
+  for (i in 1:length(Coalition_Dataframe$Step)){if (Coalition_Dataframe$Step[i]==(tick-1)){vblist2 <- i}}
+  xlst <- list()
+  num_per_tick <- length(Links_Dataframe$Agent3)/500
+  p = 1
+  for (j in vblist:vblist2){xlst <- Coalition_Dataframe$Members[j]
+    xlst <- as.character(xlst)
+    xlst <- gsub("\\[|\\]|","",xlst)
+    xlst <- unlist(strsplit(xlst,","))
+    xlst <- as.numeric(xlst) 
+    for (i in (1+num_per_tick*(tick-1)):(1+num_per_tick*(tick-1)+num_per_tick)) {if (Links_Dataframe$Agent3[i] > 0 & Links_Dataframe$agent1nr[i] %in% xlst & Links_Dataframe$agent2nr[i] %in% xlst) {newlist1[[p]] <- as.integer(Links_Dataframe$agent1nr[i]); newlist2[[p]] <- as.integer(Links_Dataframe$agent2nr[i]); newlist3[[p]] <- unlist(Links_Dataframe$Agent3[i]); p = p+1}}}
+  edges = data.frame(as.double(newlist1),as.double(newlist2))
+  edges$TrustLevel <- newlist3
+  network <- graph_from_data_frame(d=edges, directed=F)
+  p1 <- cluster_label_prop(network)
+  plot(p1,network)
+}
+
+# Examples
+Coalitionplot(Links_ACF_0,Coalitions_ACF,3)
+Coalitionplot(Links_ACF_0,Coalitions_ACF,100)
+Coalitionplot(Links_ACF_0,Coalitions_ACF,101)
+Coalitionplot(Links_ACF_0,Coalitions_ACF,102)
+Coalitionplot(Links_ACF_0,Coalitions_ACF,103)
+
+# Code that plots the network between actors in 1 coalition at a specific tick
+# Vertex labels disappear when new vertices are added, better to use the ggnetversion
+Coalitionnetworkplot <- function(Links_Dataframe, Coalitiondataframe,tick,actor){
+  newlist1 <- list()
+  newlist2 <- list()
+  newlist3 <- list()
+  xlst <- list()
+  num_per_tick <- length(Links_Dataframe$Agent3)/500
+  for (i in 1:length(Coalitiondataframe$Lead)){if (Coalitiondataframe$Lead[i]==actor & Coalitiondataframe$Creation[i]==tick) {k <- i}}
+  xlst <- Coalitiondataframe$Members[k]
+  xlst <- as.character(xlst)
+  xlst <- gsub("\\[|\\]|","",xlst)
+  xlst <- unlist(strsplit(xlst,","))
+  xlst <- as.numeric(xlst)
+  p = 1
+  for (i in (1+num_per_tick*(tick-1)):(1+num_per_tick*(tick-1)+num_per_tick)) {if (Links_Dataframe$Agent3[i] > 0 & Links_Dataframe$agent1nr[i] %in% xlst & agent2nr[i] %in% xlst) {newlist1[[p]] <- as.integer(Links_Dataframe$agent1nr[i]); newlist2[[p]] <- as.integer(Links_Dataframe$agent2nr[i]); newlist3[[p]] <- unlist(Links_Dataframe$Agent3[i]); p = p+1}}
+  #for (i in xlst){newlist1[[p]] <- i; newlist2[[p]] <- i; newlist3[[p]] <- 1; p = p+1}
+  edges = data.frame(as.double(newlist1),as.double(newlist2))
+  edges$TrustLevel <- newlist3
+  network <- graph_from_data_frame(d=edges, directed=F)
+  for (i in xlst){if (i %in% edges$as.double.newlist1. || i %in% edges$as.double.newlist2.){}else {network <- network %>% add_vertices(1,names = "ex",label = as.character(i))}}
+  plot(network, vertex.label.cex = 1.5, edge.size = edges$TrustLevel)
+} 
+
+# Example
+Coalitionnetworkplot(Links_ACF_0,Coalitions_ACF,12,7)
+Coalitionnetworkplot(Links_ACF_0,Coalitions_ACF,12,11)
+Coalitionnetworkplot(Links_ACF_0,Coalitions_ACF,89,28)
+
+## Snibbits of code
+for (i in 1:length(Coalition2$Step)){if (Coalition2$Step[i]==3){vblist <- i; break}}
+sum(Coalition2$Step==0)
+
+vblist <- Coalition2$Members[1]
+vblist <- as.character(vblist)
+vblist <- gsub("\\[|\\]|","",vblist)
+vblist <- unlist(strsplit(vblist,","))
+vblist <- as.numeric(vblist)
